@@ -1,8 +1,6 @@
 package projects;
 
 import java.math.BigDecimal;
-// Utility to connect to a database
-import java.sql.Connection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Scanner;
@@ -19,14 +17,19 @@ import projects.service.ProjectService;
 public class ProjectsApp {
   private Scanner scanner = new Scanner (System.in);
   private ProjectService projectService = new ProjectService(); 
+  private Project curProject;
 	
 	//formatter:off
 	private List<String> operations = List.of(
-		"1) Add a project" 
+		"1) Add a project",
+		"2) List projects",
+		"3) Select a project" //added an additional menu option to select a project by project ID
 	);
 	 /**
 	  * @formatter:on
+	  * 
 	  * Entry point for Java application
+	  * 
 	  * @param args Unused
 	  */
   public static void main(String[] args)  {
@@ -53,6 +56,13 @@ public class ProjectsApp {
 					createProject();
 					break;
 					
+				case 2:
+					listProjects();
+					break;
+					
+				case 3: 
+					selectProject();
+					
 				default:
 					System.out.println("\n" + selection + "is not a valid selection Try again.");
 				break;
@@ -63,9 +73,28 @@ public class ProjectsApp {
 			System.out.println("\nError " + e + " Try again." );
 		}
 	  }
-	}
- 		/**
- 		 * Gather user input for a a project row then call the project service to create a new row.
+	} // The following 2 methods are designed to list all available projects and allow the user to select one
+	//by using its ID. The selected project is fetched and stored in the curProject variable.
+ 		private void selectProject() {
+		listProjects();
+		Integer projectId = getIntInput("Enter a project ID to select a project");
+		
+		curProject = null;
+		
+		curProject = projectService.fetchProjectById(projectId);
+		
+		}
+		private void listProjects() {
+			List<Project> projects = projectService.fetchAllProjects();
+			
+			System.out.println("\nProjects:");
+			
+			projects.forEach(project -> System.out.println("   " + project.getProjectId()
+			+ ": " + project.getProjectName()));
+			
+ 		}
+		/**
+ 		 * Gathers user input for a project row then call the project service to create a new row.
  		 */
 	private void createProject() {
 		String projectName = getStringInput("Enter the project name"); 
@@ -179,8 +208,15 @@ public class ProjectsApp {
 	 * 	Print the menu selections
 	 */
 	private void printOperations() {
-		System.out.println("\nThese are the avaible selections. Press the Enter key to quit:");
+		System.out.println("\nThese are the available selections. Press the Enter key to quit:");
 	operations.forEach(line -> System.out.println(" "+ line));
+	
+	if(Objects.isNull(curProject)) {
+		System.out.println(("\nYou are not working with a project."));
+	}
+	else {
+		System.out.println(("\nYou are working with project " + curProject));
+	}
 	}
 		
 		 }	 

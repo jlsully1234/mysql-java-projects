@@ -10,7 +10,7 @@ import java.util.List;
 /**
  * @author Promineo
  * 
- * The project class is a data structure  design to encapsulate information  about a
+ * The projects class is a data structure  design to encapsulate information  about a
  * project including its ID, name, estimated hours, difficulty, notes, materials, steps 
  * and categorie4s  
  * */
