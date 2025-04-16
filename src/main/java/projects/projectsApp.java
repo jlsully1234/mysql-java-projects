@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Objects;
 import java.util.Scanner;
-
 import projects.entity.Project;
 import projects.exception.DbException;
 import projects.service.ProjectService;
@@ -23,7 +22,10 @@ public class ProjectsApp {
 	private List<String> operations = List.of(
 		"1) Add a project",
 		"2) List projects",
-		"3) Select a project" //added an additional menu option to select a project by project ID
+		"3) Select a project",
+		"4) Update project details",
+		"5) Delete a project"
+		
 	);
 	 /**
 	  * @formatter:on
@@ -62,6 +64,14 @@ public class ProjectsApp {
 					
 				case 3: 
 					selectProject();
+				
+				case 4:
+					updateProjectDetails();
+					break;
+					
+				case 5:
+					deleteProject();
+					break;
 					
 				default:
 					System.out.println("\n" + selection + "is not a valid selection Try again.");
@@ -73,7 +83,86 @@ public class ProjectsApp {
 			System.out.println("\nError " + e + " Try again." );
 		}
 	  }
-	} // The following 2 methods are designed to list all available projects and allow the user to select one
+		
+/* This method deletes a row from the project table if the project ID is found in an existing row.
+ * This method deletes a project and all the project child records. First the method lists
+ * the projects, then allows the user to input a project ID of the project to delete. If
+ * the user enters a project ID that is not in the project table, the service throws an exception.
+ */
+	} private void deleteProject() {
+	listProjects();
+	
+	Integer projectId = getIntInput("Enter the ID of the project to delete");
+	
+	projectService.deleteProject(projectId);
+	System.out.println("Project " +projectId + " was deleted successfully.");
+	
+	if(Objects.nonNull(curProject) && curProject.getProjectId().equals(projectId)) {
+		curProject = null;
+	}
+	}
+	
+	/**
+	 * This method allows the user to modify project details. The user is asked to 
+	 * modify a field in the project. The value of the current project is displayed as a default.
+	 * If the user presses Enter without entering a value, the value in the current project is 
+	 * unchanged
+	 */
+	private void updateProjectDetails() {
+		//if there is no current project selected , return to menu
+				if(Objects.isNull(curProject)) {
+					System.out.println("\nPlease select a project.");
+					return;
+	}
+	/**
+	 *  Collect input from user . If the user presses enter without entering a value the local variable
+	 * will be null
+	 */			 
+	String projectName = getStringInput("Enter the project name["+ curProject.getProjectName() + "]");
+	
+	BigDecimal estimatedHours = getDecimalInput("Enter the estimated hours [" 
+		+ curProject.getEstimatedHours() + "]");
+	
+	BigDecimal actualHours = getDecimalInput("Enter the actual hours + ["
+		+curProject.getActualHours() + "]");
+	
+	Integer difficulty = getIntInput("Enter the project difficulty 1-5 ["
+		+ curProject.getDifficulty() + "]");
+	
+	String notes = getStringInput("Enter the project notes [" + curProject.getNotes() + "]");
+	/* Use the value supplied by user if user enter something. if user did not enter a value, set
+	 * the value to that to that which is in the currently selected project
+	 */
+	
+	Project project = new Project();
+	project.setProjectName(Objects.isNull(projectName)
+	? curProject.getProjectName() : projectName);
+	
+	project.setProjectId(curProject.getProjectId());
+	project.setProjectName(curProject.getProjectName());
+	project.setEstimatedHours(curProject.getEstimatedHours());
+	project.setActualHours(curProject.getActualHours());
+	project.setDifficulty(curProject.getDifficulty());
+	project.setNotes(curProject.getNotes());
+	
+	/* call the project service to update the project details*/
+	projectService.modifyProjectDetails(project);
+	
+	/* Re-read the current project, which will display the current details.*/
+	curProject = projectService.fetchProjectById(curProject.getProjectId());
+	
+			
+	
+			
+			
+			
+		
+		
+		
+		
+		
+		}
+	// The following 2 methods are designed to list all available projects and allow the user to select one
 	//by using its ID. The selected project is fetched and stored in the curProject variable.
  		private void selectProject() {
 		listProjects();
