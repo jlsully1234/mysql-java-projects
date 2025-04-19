@@ -130,20 +130,21 @@ public class ProjectsApp {
 		+ curProject.getDifficulty() + "]");
 	
 	String notes = getStringInput("Enter the project notes [" + curProject.getNotes() + "]");
-	/* Use the value supplied by user if user enter something. if user did not enter a value, set
-	 * the value to that to that which is in the currently selected project
-	 */
+	 /*
+     * Create and populate a Project object. Use the value supplied by the user if the user entered
+     * something. If the user did not enter a value, set the value to that which is in the currently
+     * selected project.
+     */
 	
 	Project project = new Project();
-	project.setProjectName(Objects.isNull(projectName)
-	? curProject.getProjectName() : projectName);
+	
 	
 	project.setProjectId(curProject.getProjectId());
-	project.setProjectName(curProject.getProjectName());
-	project.setEstimatedHours(curProject.getEstimatedHours());
-	project.setActualHours(curProject.getActualHours());
-	project.setDifficulty(curProject.getDifficulty());
-	project.setNotes(curProject.getNotes());
+	project.setProjectName(Objects.isNull(projectName) ? curProject.getProjectName() : projectName);
+	project.setEstimatedHours(Objects.isNull(estimatedHours) ? curProject.getEstimatedHours() : estimatedHours);
+	project.setActualHours(Objects.isNull(actualHours) ? curProject.getActualHours() : actualHours);
+	project.setDifficulty(Objects.isNull(difficulty) ? curProject.getDifficulty() : difficulty);
+	project.setNotes(Objects.isNull(notes) ? curProject.getNotes() : notes);
 	
 	/* call the project service to update the project details*/
 	projectService.modifyProjectDetails(project);
@@ -151,28 +152,29 @@ public class ProjectsApp {
 	/* Re-read the current project, which will display the current details.*/
 	curProject = projectService.fetchProjectById(curProject.getProjectId());
 	
-			
-	
-			
-			
-			
-		
-		
-		
-		
-		
-		}
+	}
 	// The following 2 methods are designed to list all available projects and allow the user to select one
 	//by using its ID. The selected project is fetched and stored in the curProject variable.
  		private void selectProject() {
 		listProjects();
 		Integer projectId = getIntInput("Enter a project ID to select a project");
 		
+		/*
+	     * Unselect the current project. This must be done as a pre-step to fetching the project because
+	     * fetchProjectById() will throw an exception if an invalid project ID is entered, which would
+	     * leave the currently selected project intact.
+	     */
+		
 		curProject = null;
 		
 		curProject = projectService.fetchProjectById(projectId);
 		
 		}
+ 		
+ 		/**
+ 		   * This method calls the project service to retrieve a list of projects from the projects table.
+ 		   * It then uses a Lambda expression to print the project IDs and names on the console.
+ 		   */
 		private void listProjects() {
 			List<Project> projects = projectService.fetchAllProjects();
 			
@@ -241,7 +243,7 @@ public class ProjectsApp {
 		}
 		/**
 		 * This method prints the available menu selections. It then gets user's menu selection
-		 * from the console and converts it into a int
+		 * from the console and converts it into a int.
 		 * 
 		 * @return The menu selection as int or -1 if nothing is selected.
 		 */
@@ -261,8 +263,6 @@ public class ProjectsApp {
 		 * to an integer
 		 * @throws DbExceptiom throw if the input is not a valid integer
 		 */
-		
-		
 		
 		private Integer getIntInput(String prompt) {
 			String input = getStringInput(prompt);
@@ -294,11 +294,25 @@ public class ProjectsApp {
 		}
 		
 	/**
-	 * 	Print the menu selections
-	 */
+	 * 	Print the menu selections , one per line. Solutions are given with 1) a Lambda expression, 2) a
+   * method reference, and 3) an enhanced for loop.
+   */
+		
 	private void printOperations() {
 		System.out.println("\nThese are the available selections. Press the Enter key to quit:");
 	operations.forEach(line -> System.out.println(" "+ line));
+	
+	/*
+     * Print with a method reference. Note that there is no way to use System.out::println directly
+     * and have the line indented. Method references can be used to replace a simple one-line Lambda
+     * expression. They can and should be used if they provide clarity and conciseness.
+     */
+    // operations.forEach(this::printWithIndent);
+
+    /* With enhanced for loop */
+    // for(String line : operations) {
+    // printWithIndent(line);
+    // }
 	
 	if(Objects.isNull(curProject)) {
 		System.out.println(("\nYou are not working with a project."));

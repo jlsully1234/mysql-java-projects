@@ -9,9 +9,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-
 import javax.xml.stream.events.StartDocument;
-
 import projects.entity.Category;
 import projects.entity.Material;
 import projects.entity.Project;
@@ -81,7 +79,7 @@ public Project insertProject(Project project) {
   }
  }
 
-//method is designed to retrieve all records from connecting to PROJECT TABLE, a database table within Projects. It constructs a
+//method uses JDBC and is designed to retrieve all project (rows) records from connecting to PROJECT TABLE, a database table within Projects. It constructs a
 // an SQL query to select all columns from the table and order them by project name and throws an exception 
 public List<Project> fetchAllProjects() {
 	String sql = "SELECT * FROM " + PROJECT_TABLE + " ORDER BY Project_name";
@@ -112,7 +110,7 @@ public List<Project> fetchAllProjects() {
   }
 
 
-}//methods retrieves a Project for the database along with its associated materials, steps, and 
+}//methods used JDBC method to call and retrieve a single project row Project for the database along with its associated materials, steps, and 
 //categories using JDBC it handles potential null values.
 
 public Optional<Project> fetchProjectById(Integer projectId) {
@@ -121,11 +119,26 @@ public Optional<Project> fetchProjectById(Integer projectId) {
 	  try(Connection conn = DbConnection.getConnection()) {
 	    startTransaction(conn);
 	  
-	  try {
+	    /*
+	       * This try block is used to wrap all code to return the project row and accompanying
+	       * materials, steps and categories so that, if an error occurs at any place, the transaction
+	       * can be rolled back correctly.
+	       */	    
+	    
+	    
+	    try {
 		 Project project = null; 
 		 
 		 try(PreparedStatement stmt = conn.prepareStatement(sql)) {
 			setParameter(stmt, 1, projectId, Integer.class); 
+			
+			 /*
+	           * Alternate approach. If you know your parameter will never be null you can set the
+	           * parameter on the statement directly using JDBC. If the parameter might be null, you
+	           * must perform a null check and call rs.setNull() if it is null.
+	           */	
+			
+			
 			
 			try(ResultSet rs = stmt.executeQuery()) {
 				if(rs.next()) {
@@ -134,7 +147,10 @@ public Optional<Project> fetchProjectById(Integer projectId) {
 			}
 		
 		 }
-	  
+		 /*
+	         * This null check isn't expressly needed because if the project ID is invalid, each method
+	         * will simply return an empty list. However, it avoids three unnecessary database calls.
+	         */
 	  
 	  if(Objects.nonNull(project)) {
 		 project.getMaterials().addAll(fetchMaterialsForProject(conn, projectId));
@@ -143,6 +159,10 @@ public Optional<Project> fetchProjectById(Integer projectId) {
 		 project.getCategories().addAll(fetchProjectCategories(conn, projectId));
 	  
 	  }
+	  /*
+       * Optional.ofNullable() is used because project may be null at this point if the given
+       * project ID is invalid.
+       */
 	  return Optional.ofNullable(project);
 	  
 	  }
@@ -156,9 +176,22 @@ public Optional<Project> fetchProjectById(Integer projectId) {
 			throw new DbException(e);
 	  }
   }
+/**
+ * This method retrieves all the categories associated with the given project ID. Note the inner
+ * join to join the category rows to the project_category join table. The join table is needed
+ * because projects and categories have a many-to-many relationship. Categories can exist on their
+ * own without having associated projects and projects can exist on their own without having any
+ * categories. The join table links the project and category tables together.
+ * 
+ * The connection is supplied by the caller so that the categories can be returned within the
+ * current transaction.
+ * 
+ * @param conn The Connection object supplied by the caller.
+ * @param projectId The project ID to use for the categories.
+ * @return A list of categories if successful.
+ * @throws DbException Thrown if an exception is thrown by the driver.
+ */
 
-// Method retrieves a list of category objects associated with a specific projectID from a database
-// using an SQL query with a JOIN operation
 private List< Category> fetchProjectCategories(Connection conn, Integer projectId) throws SQLException {
 	// @formatter: off
 	String sql =""
@@ -181,7 +214,15 @@ private List< Category> fetchProjectCategories(Connection conn, Integer projectI
 	  }
   }
 }
-
+/**
+ * This method uses JDBC method calls to retrieve project steps for the given project ID. The
+ * connection is supplied by the caller so that steps can be retrieved on the current transaction.
+ * 
+ * @param conn The caller-supplied connection.
+ * @param projectId The project ID used to retrieve the steps.
+ * @return A list of steps in step order.
+ * @throws SQLException Thrown if the database driver encounters an error.
+ */
 // Method retrieves a list of step objects associated with a specific project in a database. It has an SQL Exception.
 // it also has a SQL query to select all columns from the STEP_TABLE. he use of PreparedStatement helps prevent 
 // SQL injection by safely setting query parameters.
@@ -203,7 +244,16 @@ private List<Step> fetchProjectSteps(Connection conn, Integer projectId) throws 
 	  }
 }
 
-
+/**
+ * This method uses JDBC method calls to retrieve project materials for the given project ID. The
+ * connection is supplied by the caller so that project materials can be retrieved on the current
+ * transaction.
+ * 
+ * @param conn The caller-supplied connection.
+ * @param projectId The project ID used to retrieve the materials.
+ * @return A list of materials.
+ * @throws SQLException Thrown if the database driver encounters an error.
+ */
 
 private List<Material> fetchMaterialsForProject(Connection conn, Integer projectId) throws SQLException {
 	 String sql = "SELECT * FROM "+ MATERIAL_TABLE + " m WHERE m.project_id = ?";
@@ -223,7 +273,15 @@ private List<Material> fetchMaterialsForProject(Connection conn, Integer project
 		  }
 	  }
 }
-
+/**
+ * This method uses JDBC calls to modify the project details. An UPDATE statement is used for
+ * this.
+ * 
+ * @param project The project object with modified details.
+ * @return {@code true} if the project was modified successfully. {@code false} if an invalid
+ *         project ID is supplied.
+ * @throws DbException Thrown if a SQLException is thrown by the driver.
+ */
 public boolean modifyProjectDetails(Project project)  {
 //@formatter:off
 	String sql = "" + "UPDATE " + PROJECT_TABLE + " SET "
@@ -231,10 +289,10 @@ public boolean modifyProjectDetails(Project project)  {
 					+ "estimated_hours = ?, "
 					+ "actual_hours = ?, "
 					+ "difficulty = ?, "
-					+ "notes = ?, "
+					+ "notes = ? "
 					+ "WHERE project_id = ? ";
 //@formatter:on
-	
+System.out.println(project);	
 try(Connection conn = DbConnection.getConnection()) {
 	startTransaction(conn);
 	
@@ -260,18 +318,27 @@ try(Connection conn = DbConnection.getConnection()) {
 		throw new DbException(e);
 	}
 }
-
-public static boolean deleteProject(Integer projectId) {
-	String sql ="DELETE FROM " + PROJECT_TABLE + " WHERE project_id ?";
-	
+/**
+ * This method deletes the project row from the project table if the project ID is found in an
+ * existing row. All child rows (materials, steps and category associations) are deleted as well
+ * because the foreign keys in those tables were created by specifying ON DELETE CASCADE.
+ * 
+ * @param projectId The project ID of the project to delete.
+ * @return {@code true} if the project was deleted. {@code false} if an invalid project ID is
+ *         supplied.
+ * @throws DbException Thrown if the driver throws{@link SQLException}.
+   */
+public boolean deleteProject(Integer projectId) {
+	String sql = "DELETE FROM " + PROJECT_TABLE + " WHERE project_id = ?";
+	System.out.println(sql);
 	try(Connection conn = DbConnection.getConnection()) {
 		startTransaction(conn);
 		
 		
 	try(PreparedStatement stmt = conn.prepareStatement(sql)) {
-	setParameter(stmt, 1, projectId. Integer.class);
+	setParameter(stmt, 1, projectId, Integer.class);
 	
-	boolean deleted = stmt.executeUpdate() ==1;
+	boolean deleted = stmt.executeUpdate() == 1;
 	
 	 commitTransaction(conn);
 	  return deleted;
@@ -280,7 +347,7 @@ public static boolean deleteProject(Integer projectId) {
 	        rollbackTransaction(conn);
 	        throw new DbException(e);
 	 }
-	
+	}
 	 catch(SQLException e) {
 	      throw new DbException(e);
 	 }
@@ -291,5 +358,5 @@ public static boolean deleteProject(Integer projectId) {
 	
 	
 }
-}
+
 
